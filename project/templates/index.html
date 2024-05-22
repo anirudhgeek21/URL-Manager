@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Directory and URL Manager</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f2f5;
+        }
+        .container {
+            background-color: #ffffff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            padding: 20px 30px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #333333;
+        }
+        button, select, input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #dddddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #007bff;
+            color: #ffffff;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .hidden {
+            display: none;
+        }
+        .disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #666666;
+            text-align: left;
+        }
+        .alert {
+            color: #ff0000;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        #urlInput {
+            width: 95%;
+        }
+        .popup {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background-color: #28a745;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 4px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(20px);
+            transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s ease;
+        }
+        .popup.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Directory and URL Manager</h1>
+        <button onclick="chooseDirectory()">Choose Directory</button>
+        <select id="fileDropdown" class="hidden"></select>
+        <label for="urlInput">Enter URL:</label>
+        <input type="text" id="urlInput" oninput="validateURL()">
+        <button id="submitButton" class="disabled" onclick="submitURL()" disabled>Submit</button>
+        <div id="alert" class="alert hidden">Invalid URL. Only letters, numbers, '.', '/', and '*' are allowed.</div>
+    </div>
+    <div id="popup" class="popup">URL saved successfully</div>
+
+    <script>
+        function chooseDirectory() {
+            fetch('/choose-directory')
+                .then(response => response.json())
+                .then(data => {
+                    const fileDropdown = document.getElementById('fileDropdown');
+                    fileDropdown.innerHTML = '';
+                    data.files.forEach(file => {
+                        const option = document.createElement('option');
+                        option.value = file;
+                        option.textContent = file;
+                        fileDropdown.appendChild(option);
+                    });
+                    fileDropdown.classList.remove('hidden');
+                });
+        }
+
+        function validateURL() {
+            const urlInput = document.getElementById('urlInput').value;
+            const submitButton = document.getElementById('submitButton');
+            const alert = document.getElementById('alert');
+            const regex = /^[a-zA-Z0-9./*]*$/;
+            if (regex.test(urlInput)) {
+                submitButton.classList.remove('disabled');
+                submitButton.disabled = false;
+                alert.classList.add('hidden');
+            } else {
+                submitButton.classList.add('disabled');
+                submitButton.disabled = true;
+                alert.classList.remove('hidden');
+            }
+        }
+
+        function submitURL() {
+            const urlInput = document.getElementById('urlInput').value;
+            const selectedFile = document.getElementById('fileDropdown').value;
+            fetch('/save-url', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ url: urlInput, file: selectedFile })
+            }).then(response => response.json())
+              .then(data => {
+                  showPopup(data.message);
+              });
+        }
+
+        function showPopup(message) {
+            const popup = document.getElementById('popup');
+            popup.textContent = message;
+            popup.classList.add('show');
+            setTimeout(() => {
+                popup.classList.remove('show');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
